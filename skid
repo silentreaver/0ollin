@@ -33,6 +33,7 @@ local Tabs = {
     EXACT SOURCE CODE EMBEDDED - NO LOADSTRING
     Source: https://raw.githubusercontent.com/Exunys/Exunys-ESP/refs/heads/main/src/ESP.lua
 ]]
+local ESPModule
 do
     --// Caching
     local game = game
@@ -1241,7 +1242,7 @@ local ESPNamesToggle = ESPSection:AddToggle('ESPNames', {
     Default = true,
 })
 
-local ESPColorPicker = ESPSection:AddColorPicker('ESPColor', {
+local ESPColorPicker = ESPSection:AddColorpicker('ESPColor', {
     Title = 'ESP Color',
     Default = Color3.fromRGB(255, 0, 0),
     Transparency = 0,
@@ -1256,12 +1257,16 @@ ESPMainToggle:OnChanged(function(Value)
     ESPEnabled = Value
     if ESPModule then
         if Value then
+            ESPModule.Settings.Enabled = true
             ESPModule:Load()
             Library:Notify('ESP enabled!', 2)
         else
+            ESPModule.Settings.Enabled = false
             ESPModule:UnwrapAll()
             Library:Notify('ESP disabled!', 2)
         end
+    else
+        Library:Notify('ESP Module not loaded!', 3)
     end
 end)
 
@@ -1280,7 +1285,7 @@ end)
 ESPNamesToggle:OnChanged(function(Value)
     if ESPModule then
         ESPModule.Properties.ESP.DisplayName = Value
-        ESPModule.Properties.ESP.DisplayName = Value
+        ESPModule.Properties.ESP.DisplayDisplayName = Value
     end
 end)
 
@@ -1300,10 +1305,12 @@ end)
 
 -- Theme Manager
 ThemeManager:SetLibrary(Library)
+ThemeManager:SetFolder('RobloxScriptHub')
 ThemeManager:ApplyToTab(Tabs.Settings)
 
 -- Save Manager
 SaveManager:SetLibrary(Library)
+SaveManager:SetFolder('RobloxScriptHub/configs')
 SaveManager:IgnoreThemeSettings()
 SaveManager:SetIgnoreIndexes({ 'MenuKeybind' })
 SaveManager:BuildConfigSection(Tabs.Settings)
