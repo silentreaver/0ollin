@@ -1242,33 +1242,101 @@ local ESPNamesToggle = ESPSection:AddToggle('ESPNames', {
     Default = true,
 })
 
-local ESPColorPicker = ESPSection:AddColorpicker('ESPColor', {
-    Title = 'ESP Color',
-    Default = Color3.fromRGB(255, 0, 0),
-    Transparency = 0,
-})
+-- Color picker - try different method names
+local ESPColorPicker = nil
+local function UpdateESPColor(color)
+    ESPColor = color
+    if ESPModule then
+        ESPModule.Properties.Box.Color = color
+        ESPModule.Properties.HealthBar.Color = color
+        ESPModule.Properties.ESP.Color = color
+    end
+end
+
+-- Try AddColorpicker (lowercase p)
+local success, result = pcall(function()
+    return ESPSection:AddColorpicker('ESPColor', {
+        Text = 'ESP Color',
+        Default = Color3.fromRGB(255, 0, 0),
+        Callback = UpdateESPColor
+    })
+end)
+
+if success then
+    ESPColorPicker = result
+else
+    -- Try AddColorPicker (capital P)
+    success, result = pcall(function()
+        return ESPSection:AddColorPicker('ESPColor', {
+            Text = 'ESP Color',
+            Default = Color3.fromRGB(255, 0, 0),
+            Callback = UpdateESPColor
+        })
+    end)
+    if success then
+        ESPColorPicker = result
+    else
+        -- Fallback: Use RGB sliders
+        ESPSection:AddLabel('ESP Color (RGB Sliders)')
+        local ESPR = ESPSection:AddSlider('ESPR', {
+            Text = 'Red',
+            Default = 255,
+            Min = 0,
+            Max = 255,
+            Rounding = 0,
+            Callback = function(Value)
+                local g = ESPColor and math.floor(ESPColor.G * 255) or 0
+                local b = ESPColor and math.floor(ESPColor.B * 255) or 0
+                UpdateESPColor(Color3.fromRGB(Value, g, b))
+            end
+        })
+        local ESPG = ESPSection:AddSlider('ESPG', {
+            Text = 'Green',
+            Default = 0,
+            Min = 0,
+            Max = 255,
+            Rounding = 0,
+            Callback = function(Value)
+                local r = ESPColor and math.floor(ESPColor.R * 255) or 255
+                local b = ESPColor and math.floor(ESPColor.B * 255) or 0
+                UpdateESPColor(Color3.fromRGB(r, Value, b))
+            end
+        })
+        local ESPB = ESPSection:AddSlider('ESPB', {
+            Text = 'Blue',
+            Default = 0,
+            Min = 0,
+            Max = 255,
+            Rounding = 0,
+            Callback = function(Value)
+                local r = ESPColor and math.floor(ESPColor.R * 255) or 255
+                local g = ESPColor and math.floor(ESPColor.G * 255) or 0
+                UpdateESPColor(Color3.fromRGB(r, g, Value))
+            end
+        })
+    end
+end
 
 local ESPMainToggle = ESPSection:AddToggle('ESPEnabled', {
     Text = 'Enable ESP',
     Default = false,
-})
-
-ESPMainToggle:OnChanged(function(Value)
-    ESPEnabled = Value
-    if ESPModule then
-        if Value then
-            ESPModule.Settings.Enabled = true
-            ESPModule:Load()
-            Library:Notify('ESP enabled!', 2)
+    Callback = function(Value)
+        ESPEnabled = Value
+        if ESPModule then
+            if Value then
+                ESPModule.Settings.Enabled = true
+                ESPModule:Load()
+                Library:Notify('ESP enabled!', 2)
+            else
+                ESPModule.Settings.Enabled = false
+                ESPModule:UnwrapAll()
+                Library:Notify('ESP disabled!', 2)
+            end
         else
-            ESPModule.Settings.Enabled = false
-            ESPModule:UnwrapAll()
-            Library:Notify('ESP disabled!', 2)
+            Library:Notify('ESP Module not loaded!', 3)
         end
-    else
-        Library:Notify('ESP Module not loaded!', 3)
     end
-end)
+})
 
 ESPBoxesToggle:OnChanged(function(Value)
     if ESPModule then
@@ -1289,19 +1357,12 @@ ESPNamesToggle:OnChanged(function(Value)
     end
 end)
 
-ESPColorPicker:OnChanged(function(Value)
-    ESPColor = Value
-    if ESPModule then
-        -- Update ESP colors
-        ESPModule.Properties.Box.Color = Value
-        ESPModule.Properties.HealthBar.Color = Value
-        ESPModule.Properties.ESP.Color = Value
-    end
-end)
-
 --[[
     SETTINGS TAB
 ]]
+
+-- Add a groupbox to ensure the tab is visible
+local SettingsSection = Tabs.Settings:AddLeftGroupbox('Settings')
 
 -- Theme Manager
 ThemeManager:SetLibrary(Library)
